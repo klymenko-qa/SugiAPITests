@@ -28,6 +28,7 @@ public class AuthEndpoint {
     public RequestSpecification given() {
         return SerenityRest
                 .given()
+                .auth().preemptive().basic("client", "aGYu2PZVquZD8ydE")
                 .baseUri("https://qa-sugi.uptech.team")
                 .contentType(ContentType.JSON);
     }
@@ -36,7 +37,6 @@ public class AuthEndpoint {
         return given()
                 .contentType("application/x-www-form-urlencoded")
                 .queryParam("email", email)
-                .header("Authorization", "Basic Y2xpZW50OmFHWXUyUFpWcXVaRDh5ZEU=")
                 .when()
                 .post(VERIFY_EMAIL)
                 .then()
@@ -44,28 +44,39 @@ public class AuthEndpoint {
                 .body("data.email", is (email));
     }
 
-    public ValidatableResponse login(String username, String password) {
-        return given()
+    public String login(String username, String password) {
+        ValidatableResponse response =
+                given()
                 .contentType("application/x-www-form-urlencoded")
                 .queryParam("username", username)
                 .queryParam("password", password)
                 .queryParam("grant_type", "password")
-                .header("Authorization", "Basic Y2xpZW50OmFHWXUyUFpWcXVaRDh5ZEU=")
                 .when()
                 .post(LOGIN)
                 .then()
                 .statusCode(SC_OK);
+        return response.extract().path("data.accessToken");
     }
 
-    public String register(NewUser newUser) {
-        ValidatableResponse response =
-                given()
-                .header("Authorization", "Basic Y2xpZW50OmFHWXUyUFpWcXVaRDh5ZEU=")
+    public ValidatableResponse register(NewUser newUser) {
+        return given()
                 .body(newUser)
                 .when()
                 .post(REGISTER)
                 .then()
                 .statusCode(SC_OK);
-        return response.extract().path("accessToken");
+    }
+
+    public String refreshToken(String refreshToken) {
+        ValidatableResponse response =
+                given()
+                        .contentType("application/x-www-form-urlencoded")
+                        .queryParam("grant_type", "refresh_token")
+                        .queryParam("refresh_token", refreshToken)
+                        .when()
+                        .post(LOGIN)
+                        .then()
+                        .statusCode(SC_OK);
+        return response.extract().path("data.accessToken");
     }
 }
